@@ -34,6 +34,7 @@ import openpyxl
 from django.utils import timezone
 from django.http import HttpResponse
 import logging
+from employee_app.tasks import generate_custom_video_task
 from rest_framework.pagination import PageNumberPagination
 logger = logging.getLogger(__name__)
 
@@ -282,23 +283,43 @@ class VideoGenViewSet(viewsets.ModelViewSet):
         try:
             # print("bedbug: Calling generate_custom_video...")
             logger.info("Calling self.generate_custom_video...")
-            self.generate_custom_video(
-                main_video_path=template.template_video.path,
-                image_path=doctor.image.path,
-                name=doctor.name,
-                clinic=doctor.clinic,
-                city=doctor.city,
-                specialization_key=doctor.specialization_key,
-                time_duration=template.time_duration,
-                state=doctor.state,
-                output_path=output_path,
-                resolution=template.resolution,
-                base_x=template.base_x_axis,
-                base_y=template.base_y_axis,
-                line_spacing=template.line_spacing,
-                overlay_x=template.overlay_x,
-                overlay_y=template.overlay_y,
+            # self.generate_custom_video(
+            #     main_video_path=template.template_video.path,
+            #     image_path=doctor.image.path,
+            #     name=doctor.name,
+            #     clinic=doctor.clinic,
+            #     city=doctor.city,
+            #     specialization_key=doctor.specialization_key,
+            #     time_duration=template.time_duration,
+            #     state=doctor.state,
+            #     output_path=output_path,
+            #     resolution=template.resolution,
+            #     base_x=template.base_x_axis,
+            #     base_y=template.base_y_axis,
+            #     line_spacing=template.line_spacing,
+            #     overlay_x=template.overlay_x,
+            #     overlay_y=template.overlay_y,
+            # )
+            generate_custom_video_task.delay(
+                doctor.id,
+                template.id,
+                output_path,
+                template.template_video.path,
+                doctor.image.path,
+                doctor.name,
+                doctor.clinic,
+                doctor.city,
+                doctor.specialization_key,
+                template.time_duration,
+                doctor.state,
+                template.resolution,
+                template.base_x_axis,
+                template.base_y_axis,
+                template.line_spacing,
+                template.overlay_x,
+                template.overlay_y,
             )
+            logger.info("Video generation task enqueued to Celery")
             # print("bedbug: Video generated successfully")
             logger.info("Video generated successfully")
             # Save generated video
